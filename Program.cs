@@ -27,7 +27,8 @@ namespace CursoDapper
                 // OneToMany(connection);
                 // QueryMultiple(connection);
                 // SelectIn(connection);
-                Like(connection);
+                // Like(connection, "api");
+                Transactions(connection);
             }
         }
 
@@ -309,17 +310,59 @@ namespace CursoDapper
             }
         }
     
-        static void Like(SqlConnection connection)
+        static void Like(SqlConnection connection, string term)
         {
             var query = @"SELECT * FROM [Course] WHERE [Title] LIKE @exp";
 
             var courses = connection.Query<Course>(query, new {
-                exp = "%backend%"
+                exp = $"%{term}%"
             });
 
             foreach(var course in courses)
             {
                 Console.WriteLine(course.Title);
+            }
+        }
+   
+        static void Transactions (SqlConnection connection)
+        {
+            var category = new Category();
+            category.Id = Guid.NewGuid();
+            category.Title = "Minha categoria qeu não.";
+            category.Url = "amazon";
+            category.Description = "Categoria destinada a serviços do AWS";
+            category.Order = 8;
+            category.Summary = "AWS Cloud";
+            category.Featured = false;
+
+            var insertSql = @"INSERT INTO 
+                    [Category]
+                VALUES (
+                    @Id, 
+                    @Title,
+                    @Url,
+                    @Description,
+                    @Order,
+                    @Summary, 
+                    @Featured
+                )";
+
+            connection.Open();
+            using(var transaction = connection.BeginTransaction())
+            {
+                var rows = connection.Execute(insertSql, new {
+                    category.Id,
+                    category.Title,
+                    category.Url,
+                    category.Description,
+                    category.Order,
+                    category.Summary,
+                    category.Featured
+                }, transaction);
+
+                transaction.Rollback();
+
+                Console.WriteLine($"{rows} inseridas.");
             }
         }
     }
